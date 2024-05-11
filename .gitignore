@@ -1,2 +1,4 @@
 test.ipynb
 object/
+.idea/
+__pycache__/

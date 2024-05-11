@@ -4,7 +4,7 @@ from utils import get_msg, reply, get_img_query, describe_img
 
 if __name__ == '__main__':
     MY_AVATAR = 'object/myavatar.png'
-    OBJECT = 'xuhang'
+    OBJECT = 'yourfriend'
     HER_AVATAR = f'object/{OBJECT}/avatar.png'
     LARGE_AVATAR = f'object/{OBJECT}/large_avatar.png'
     with open(f'object/{OBJECT}/role.txt', 'r', encoding='utf-8') as file:
