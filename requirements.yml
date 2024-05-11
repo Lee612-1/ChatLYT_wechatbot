@@ -1,0 +1,5 @@
+# python==3.9.18
+gradio_client==0.16.1
+pyautogui==0.9.54
+pyperclip==1.8.2
+pillow==10.2.0
