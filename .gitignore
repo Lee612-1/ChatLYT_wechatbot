@@ -1,4 +1,5 @@
 test.ipynb
+.gitignore
 object/
 .idea/
 __pycache__/

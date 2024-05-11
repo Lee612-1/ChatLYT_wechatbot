@@ -35,6 +35,7 @@ def get_msg_pos(her_avatar, my_avatar):
 
 def get_msg(large_avatar, her_avatar, my_avatar):
     try:
+        mouseclick(large_avatar)
         x, ys = get_msg_pos(her_avatar, my_avatar)
         msg_list = []
         img_list = []
