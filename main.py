@@ -1,17 +1,16 @@
-import time
-import os
 import json
 import argparse
-import gradio_client
-from utils import get_msg, reply, get_img_query, describe_img
+from gradio_client import Client
+from utils import *
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--people', type=str, help='path of json')
-    group.add_argument('--person', type=str, default='object/xuhang', help='path of friend dir')
+    parser.add_argument('--people', type=str, help='path of json')
+    parser.add_argument('--person', type=str, default='object/xuhang', help='path of friend dir')
+    parser.add_argument('--authentic', type=int, choices=[0, 1, 2], default=2, help='more real')
     args = parser.parse_args()
-    MY_AVATAR = 'object/myavatar.png'
+
+    # load parameters
     if args.people is None:
         FRIENDS = [args.person]
     else:
@@ -19,59 +18,57 @@ if __name__ == '__main__':
             friend_dir = json.load(file)
         FRIENDS = [friend['dir'] for friend in friend_dir]
 
-    text_client = gradio_client.Client("Qwen/Qwen1.5-110B-Chat-demo")
-    img_client = gradio_client.Client("openbmb/MiniCPM-V-2")
-    history_list = [[] for _ in range(len(FRIENDS))]
+    MY_AVATAR = 'object/myavatar.png'
+    text_client = Client("Qwen/Qwen1.5-110B-Chat-demo")
+    img_client = Client("openbmb/MiniCPM-V-2")
+    history_list = process_history(FRIENDS, MY_AVATAR)
+    add_prompt = enhance_prompt()
+    attempt = 0
+
+    # loop
     while True:
+        # update time and weather in prompt every 3000 attempts
+        if attempt % 3000 == 0:
+            add_prompt = enhance_prompt()
         for i in range(len(FRIENDS)):
             HER_AVATAR = f'{FRIENDS[i]}/avatar.png'
             LARGE_AVATAR = f'{FRIENDS[i]}/large_avatar.png'
+
+            # set the system prompt
             with open(f'{FRIENDS[i]}/role.txt', 'r', encoding='utf-8') as file:
                 SYSTEM_PROMPT = file.read()
+            SYSTEM_PROMPT = SYSTEM_PROMPT + add_prompt
+
+            # get history chat and new message
             history = history_list[i]
-            query, img_list = get_msg(LARGE_AVATAR, HER_AVATAR, MY_AVATAR)
+            query, img_list = check_msg(LARGE_AVATAR, HER_AVATAR, MY_AVATAR)
+
             if query is not None:
-                if query.lower() == 'exit':
+                if 'exit' in query.lower():
                     break
-                time.sleep(5)
-                check_query, check_img_list = get_msg(LARGE_AVATAR, HER_AVATAR, MY_AVATAR)
-                if check_query==query and check_img_list==img_list:
-                    if img_list != []:
-                        img_query_list = []
-                        for img in img_list:
-                            try:
-                                raw_query = describe_img(img, img_client)
-                                img_query_list.append(raw_query)
-                            except:
-                                print('fail to answer the img')
-                                img_list = []
 
-                        img_query = get_img_query(img_query_list)
-                        if img_query is not None:
-                            query += img_query
-                        else:
-                            print('fail to describe the img')
+                # process the image to text
+                if img_list:
+                    img_query = process_img_query(img_list, img_client)
+                    if img_query is not None:
+                        query += img_query
 
-                    if query == '':
-                        answer = '暂时不支持回复此类消息，我们聊点别的吧！'
-                    else:
-                        try:
-                            result = text_client.predict(
-                                query=query,
-                                history=history,
-                                system=SYSTEM_PROMPT,
-                                api_name="/model_chat"
-                            )
-                            history = result[1]
-                            history_list[i] = history
-                            answer = result[1][-1][-1]
-                        except:
-                            answer = '未响应，输入exit退出自动回复'
-                    reply(LARGE_AVATAR, answer)
-                else:
-                    print('wait for more message')
-                    pass
+                # generate answers
+                answer, history = generate_answer(query, history, SYSTEM_PROMPT, text_client)
+
+                # process the answer and send the message
+                answer_list = process_answer(answer, args.authentic)
+                ids = reply(LARGE_AVATAR, HER_AVATAR, MY_AVATAR, answer_list)
+
+                # update the history
+                if ids is not None:
+                    answer_list = answer_list[:ids+1]
+                history[-1][-1] = '。'.join(answer_list)
+                history_list[i] = history
 
             else:
                 print('no new message')
-                time.sleep(10)
+
+        attempt += 1
+        if attempt >= 30000:
+            break
