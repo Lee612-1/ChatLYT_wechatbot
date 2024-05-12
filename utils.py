@@ -17,6 +17,14 @@ def _mouseclick(img):
     return None
 
 
+def _locate(img):
+    try:
+        location = pyautogui.locateCenterOnScreen(img, confidence=0.9)
+        return location
+    except:
+        return None
+
+
 def _get_pos(img_path):
     matches = pyautogui.locateAllOnScreen(img_path)
     x_list = []
@@ -64,6 +72,10 @@ def _get_msg(large_avatar, her_avatar, my_avatar):
 
                     time.sleep(0.2)
                 except:
+                    if _locate('object/meme.png') is not None:
+                        msg_list.append('[表情]')
+                    else:
+                        msg_list.append('[链接]')
                     _mouseclick(large_avatar)
             msg = '，'.join(msg_list)
             return msg, img_list
