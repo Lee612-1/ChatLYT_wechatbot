@@ -60,6 +60,7 @@ pip install -r requirements.yml
 <p>
   <img src="assets/example2.png"> 
 </p>
+
 ```
 object
 |___friend1  # folder
@@ -80,6 +81,7 @@ object
 |___people.json # list of friends
 ...
 ```
+
 文件夹中的样例为16：9，2k显示器下的图片大小，可能无法适用于所有用户，为保证顺利运行请重新截图。
 
 ### 运行程序
