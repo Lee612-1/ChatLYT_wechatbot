@@ -1,4 +1,5 @@
-# 微信ai自动回复😅
+# ChatLYT😅
+**一个用于微信自动回复的ai机器人**
 
 ## 注意
 使用时间过长微信可能会强制退出！
@@ -9,7 +10,8 @@
 
 ## 更新说明
 ### 2024-5-14
-1. 新增链接和表情识别
+1. 优化回答生成时的消息接收 
+2. 新增链接和表情识别
 
 ### 2024-5-13
 1. 优化代码逻辑 
@@ -49,7 +51,15 @@ pip install -r requirements.yml
 ## 使用说明
 ### 准备用户信息
 
-用截图工具获取下面这些图片： 列表中朋友的头像，聊天框中双方的头像，复制按键，发送按键；并以下面的格式放入指定文件夹。在`role.txt`中写入希望ai扮演的角色。`people.json`中存放好友列表，用于同时回复多人消息。
+用微信截图工具（Alt+A）获取下面这些图片并保存在相应文件夹下（如下所示）： 列表中朋友的头像，聊天框中双方的头像，发送按键，复制按键，添加到表情按键（最后两个是右键消息内容后弹出）。其余所需文件：在`role.txt`中写入希望ai扮演的角色。`people.json`中存放好友列表，用于同时回复多人消息。
+
+<p>
+  <img src="assets/example.png"> 
+</p>
+
+<p>
+  <img src="assets/example2.png"> 
+</p>
 ```
 object
 |___friend1  # folder
@@ -65,9 +75,13 @@ object
 |
 |___send.png # send button
 |
+|___meme.png # add meme button
+|
 |___people.json # list of friends
 ...
 ```
+文件夹中的样例为16：9，2k显示器下的图片大小，可能无法适用于所有用户，为保证顺利运行请重新截图。
+
 ### 运行程序
 在终端中输入以下代码开始运行；
 为保证程序正常运行，请务必将微信窗口置于上层。
@@ -75,7 +89,7 @@ object
 
 单人模式
 ```bash
-python -u main.py --person object/friend
+python -u main.py --person object/friend1
 ```
 
 多人模式（建议5人以下）

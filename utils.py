@@ -73,7 +73,7 @@ def _get_msg(large_avatar, her_avatar, my_avatar):
                     time.sleep(0.2)
                 except:
                     if _locate('object/meme.png') is not None:
-                        msg_list.append('[表情]')
+                        msg_list.append('[动画表情]')
                     else:
                         msg_list.append('[链接]')
                     _mouseclick(large_avatar)
@@ -126,15 +126,16 @@ def process_img_query(img_list, img_client):
 def reply(large_avatar, her_avatar, my_avatar, answers):
     for ids, answer in enumerate(answers):
         if answer != '':
+            _, ys = _get_msg_pos(her_avatar, my_avatar)
+            if ys:
+                return ids
             _mouseclick(large_avatar)
             time.sleep(0.1)
             pyperclip.copy(answer)
             pyautogui.hotkey('ctrl', 'v')
             time.sleep(0.1)
             _mouseclick('object/send.png')
-            _, ys = _get_msg_pos(her_avatar, my_avatar)
-            if ys:
-                return ids
+
             time.sleep(2)
     return None
 
@@ -295,6 +296,7 @@ def process_history(friend_list, my_avatar):
 def generate_answer(query, history, system_prompt, text_client):
     if query == '':
         answer = '暂时不支持回复此类消息，我们聊点别的吧！'
+        new_history = history
     else:
         try:
             result = text_client.predict(
@@ -303,8 +305,9 @@ def generate_answer(query, history, system_prompt, text_client):
                 system=system_prompt,
                 api_name="/model_chat"
             )
-            history = result[1]
+            new_history = result[1]
             answer = result[1][-1][-1]
         except:
             answer = '未响应，输入\'exit\'退出自动回复'
-    return answer, history
+            new_history = history
+    return answer, new_history

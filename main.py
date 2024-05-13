@@ -61,10 +61,13 @@ if __name__ == '__main__':
                 ids = reply(LARGE_AVATAR, HER_AVATAR, MY_AVATAR, answer_list)
 
                 # update the history
-                if ids is not None:
-                    answer_list = answer_list[:ids+1]
-                history[-1][-1] = '。'.join(answer_list)
-                history_list[i] = history
+                if ids != 0:
+                    if ids is not None:
+                        answer_list = answer_list[:ids]
+                    history[-1][-1] = '。'.join(answer_list)
+                    history_list[i] = history
+                else:
+                    pass
 
             else:
                 print('no new message')
