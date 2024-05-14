@@ -75,7 +75,15 @@ def _get_msg(large_avatar, her_avatar, my_avatar):
                     if _locate('object/meme.png') is not None:
                         msg_list.append('[动画表情]')
                     else:
-                        msg_list.append('[链接]')
+                        try:
+                            _mouseclick('object/audio.png')
+                            time.sleep(2)
+                            _mouseclick('object/duplicate.png')
+                            raw_msg = pyperclip.paste()
+                            raw_msg = '[语音]' + raw_msg
+                            msg_list.append(raw_msg)
+                        except:
+                            msg_list.append('[链接]')
                     _mouseclick(large_avatar)
             msg = '，'.join(msg_list)
             return msg, img_list

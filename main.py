@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     MY_AVATAR = 'object/myavatar.png'
     text_client = Client("Qwen/Qwen1.5-110B-Chat-demo")
-    img_client = Client("openbmb/MiniCPM-V-2")
+    img2text_client = Client("openbmb/MiniCPM-V-2")
     history_list = process_history(FRIENDS, MY_AVATAR)
     add_prompt = enhance_prompt()
     attempt = 0
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
                 # process the image to text
                 if img_list:
-                    img_query = process_img_query(img_list, img_client)
+                    img_query = process_img_query(img_list, img2text_client)
                     if img_query is not None:
                         query += img_query
 

@@ -9,9 +9,13 @@
 无需网页版微信即可使用。
 
 ## 更新说明
+### 2024-5-15
+1. 新增生成图片功能
+
 ### 2024-5-14
 1. 优化回答生成时的消息接收 
 2. 新增链接和表情识别
+3. 新增支持接收语音消息
 
 ### 2024-5-13
 1. 优化代码逻辑 
@@ -68,17 +72,20 @@ object
 |   |___avator # avator in chat window
 |   |___role.txt # system prompt
 |   
-|___friend2 
+|___friend2 # folder
 |
-|___myavatar.png # your own avatar
+|___audio.png # audio to text button
 | 
 |___duplicate.png # duplicate button
 |
-|___send.png # send button
-|
 |___meme.png # add meme button
 |
+|___myavatar.png # your own avatar
+|
 |___people.json # list of friends
+|
+|___send.png # send button
+|
 ...
 ```
 
