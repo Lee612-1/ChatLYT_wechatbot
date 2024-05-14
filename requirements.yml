@@ -5,3 +5,4 @@ pyperclip==1.8.2
 pillow==10.2.0
 geocoder==1.38.1
 lxml==5.2.1
+pywin32==306

@@ -1,14 +1,20 @@
+import os.path
+
 import pyautogui
 import pyperclip
 import time
 from collections import Counter
-from PIL import ImageGrab
+from PIL import ImageGrab, Image
 import gradio_client
 import geocoder
 import datetime
 import requests
 from lxml import etree
 import re
+import win32clipboard
+from io import BytesIO
+import pickle
+import random
 
 
 def _mouseclick(img):
@@ -134,16 +140,15 @@ def process_img_query(img_list, img_client):
 def reply(large_avatar, her_avatar, my_avatar, answers):
     for ids, answer in enumerate(answers):
         if answer != '':
-            _, ys = _get_msg_pos(her_avatar, my_avatar)
-            if ys:
-                return ids
             _mouseclick(large_avatar)
             time.sleep(0.1)
             pyperclip.copy(answer)
             pyautogui.hotkey('ctrl', 'v')
             time.sleep(0.1)
             _mouseclick('object/send.png')
-
+            _, ys = _get_msg_pos(her_avatar, my_avatar)
+            if ys:
+                return ids
             time.sleep(2)
     return None
 
@@ -319,3 +324,91 @@ def generate_answer(query, history, system_prompt, text_client):
             answer = '未响应，输入\'exit\'退出自动回复'
             new_history = history
     return answer, new_history
+
+
+def _send_to_clipboard(clip_type, data):
+    win32clipboard.OpenClipboard()
+    win32clipboard.EmptyClipboard()
+    win32clipboard.SetClipboardData(clip_type, data)
+    win32clipboard.CloseClipboard()
+    return None
+
+
+def _copy_image_to_clipboard(image_path):
+    image = Image.open(image_path)
+    output = BytesIO()
+    # Convert to BMP format here, as the Windows clipboard supports BMP
+    image.convert("RGB").save(output, "BMP")
+    data = output.getvalue()[14:]  # BMP file header needs to remove the first 14 bytes
+    output.close()
+    _send_to_clipboard(win32clipboard.CF_DIB, data)
+    return None
+
+
+def send_img(img_path, large_avatar):
+    _copy_image_to_clipboard(img_path)
+    _mouseclick(large_avatar)
+    time.sleep(0.1)
+    pyautogui.hotkey('ctrl', 'v')
+    time.sleep(0.1)
+    _mouseclick('object/send.png')
+    time.sleep(0.5)
+    return None
+
+
+def generate_img(text_client, img_client, user_description=None):
+    if user_description is None:
+        result1 = text_client.predict(
+            query="say a joke",
+            history=[],
+            system="You are a comedian.",
+            api_name="/model_chat"
+        )
+        description = result1[1][-1][-1]
+    else:
+        description = user_description
+    result2 = img_client.predict(
+        num_images=1,
+        height=1024,
+        width=1024,
+        prompt=description,
+        seed=random.randint(1000, 4000),
+        api_name="/process_image"
+    )
+    img_path = result2[0]['image']
+    return description, img_path
+
+
+def get_history_save_path(bath_path='history'):
+    save_time = datetime.datetime.now().strftime("%Y%m%d%H%M")
+    save_path = os.path.join(bath_path, save_time+'.pkl')
+    return save_path
+
+
+def save_history(history, start_history, save_path):
+    his_len = len(history)
+    if his_len != len(start_history):
+        print('fail to save')
+    else:
+        end_history = []
+        for i in range(his_len):
+            small_list = start_history[i]
+            big_list = history[i]
+            temp_small_list = small_list[:]
+
+            new_list = []
+            for item in big_list:
+                if item in temp_small_list:
+                    temp_small_list.remove(item)
+                else:
+                    new_list.append(item)
+            end_history.append(new_list)
+        formatted_datetime = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
+        with open(save_path, 'wb') as f:
+            pickle.dump(end_history, f)
+        print('history saved')
+    return None
+
+
+def roll_dice(odd=0.2):
+    return random.random() <= odd

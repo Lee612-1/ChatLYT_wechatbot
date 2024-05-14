@@ -3,6 +3,7 @@ import argparse
 from gradio_client import Client
 from utils import *
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--people', type=str, help='path of json')
@@ -21,8 +22,13 @@ if __name__ == '__main__':
     MY_AVATAR = 'object/myavatar.png'
     text_client = Client("Qwen/Qwen1.5-110B-Chat-demo")
     img2text_client = Client("openbmb/MiniCPM-V-2")
+    text2img_client = Client("ByteDance/Hyper-SDXL-1Step-T2I")
     history_list = process_history(FRIENDS, MY_AVATAR)
-    add_prompt = enhance_prompt()
+    start_history_list = history_list[:]
+    history_save_path = get_history_save_path()
+    add_prompt = ''
+    start_chat = '哈哈哈，这张图真搞笑！'
+    start = False
     attempt = 0
 
     # loop
@@ -47,31 +53,48 @@ if __name__ == '__main__':
                 if 'exit' in query.lower():
                     break
 
-                # process the image to text
+                # process image to text and text to image
+                text2img = False
                 if img_list:
                     img_query = process_img_query(img_list, img2text_client)
                     if img_query is not None:
                         query += img_query
+                else:
+                    if roll_dice(0.01):
+                        _, img_path = generate_img(text_client, text2img_client, query)
+                        text2img = True
 
                 # generate answers
                 answer, history = generate_answer(query, history, SYSTEM_PROMPT, text_client)
 
                 # process the answer and send the message
                 answer_list = process_answer(answer, args.authentic)
+                if text2img:
+                    send_img(img_path, LARGE_AVATAR)
                 ids = reply(LARGE_AVATAR, HER_AVATAR, MY_AVATAR, answer_list)
 
                 # update the history
-                if ids != 0:
-                    if ids is not None:
-                        answer_list = answer_list[:ids]
-                    history[-1][-1] = '。'.join(answer_list)
-                    history_list[i] = history
-                else:
-                    pass
+                if ids is not None:
+                    answer_list = answer_list[:ids+1]
+                history[-1][-1] = '。'.join(answer_list)
+                history_list[i] = history
+
+            # actively start the chat
+            elif start_chat not in history[-1][-1] and not start:
+                answer_list = [start_chat]
+                description, img_path = generate_img(text_client, text2img_client)
+                send_img(img_path, LARGE_AVATAR)
+                reply(LARGE_AVATAR, HER_AVATAR, MY_AVATAR, answer_list)
+                history[-1][-1] += ',' + start_chat + f'[图片](描述{description})'
+                history_list[i] = history
+                start = True
 
             else:
                 print('no new message')
 
         attempt += 1
+        if attempt % 5 == 0:
+            save_history(history_list, start_history_list, history_save_path)
         if attempt >= 30000:
             break
+
