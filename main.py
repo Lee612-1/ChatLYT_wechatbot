@@ -7,7 +7,7 @@ from utils import *
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--people', type=str, help='path of json')
-    parser.add_argument('--person', type=str, default='object/xuhang', help='path of friend dir')
+    parser.add_argument('--person', type=str, default='object/xingdaiyan', help='path of friend dir')
     parser.add_argument('--authentic', type=int, choices=[0, 1, 2], default=2, help='more real')
     args = parser.parse_args()
 
@@ -26,6 +26,7 @@ if __name__ == '__main__':
     history_list = process_history(FRIENDS, MY_AVATAR)
     start_history_list = history_list[:]
     history_save_path = get_history_save_path()
+    remain_msg_list = creat_remain_list(FRIENDS)
     add_prompt = ''
     start_chat = '哈哈哈，这张图真搞笑！'
     start = False
@@ -47,13 +48,18 @@ if __name__ == '__main__':
 
             # get history chat and new message
             history = history_list[i]
+            remain_query, remain_img_list = remain_msg_list[i][0], remain_msg_list[i][1]
             query, img_list = check_msg(LARGE_AVATAR, HER_AVATAR, MY_AVATAR)
+            query = remain_query + query
+            img_list = remain_img_list + img_list
+            msg_count = count_msg(HER_AVATAR, MY_AVATAR)
 
-            if query is not None:
+            if query != '':
                 if 'exit' in query.lower():
                     break
 
                 # process image to text and text to image
+                img_path = ''
                 text2img = False
                 if img_list:
                     img_query = process_img_query(img_list, img2text_client)
@@ -65,7 +71,10 @@ if __name__ == '__main__':
                         text2img = True
 
                 # generate answers
+                # print(query, history, SYSTEM_PROMPT)
                 answer, history = generate_answer(query, history, SYSTEM_PROMPT, text_client)
+                msg_count = count_msg(HER_AVATAR, MY_AVATAR) - msg_count
+                remain_query, remain_img_list = get_remain_msg(LARGE_AVATAR, HER_AVATAR, MY_AVATAR, msg_count)
 
                 # process the answer and send the message
                 answer_list = process_answer(answer, args.authentic)
@@ -78,11 +87,15 @@ if __name__ == '__main__':
                     answer_list = answer_list[:ids+1]
                 history[-1][-1] = '。'.join(answer_list)
                 history_list[i] = history
+                remain_msg_list[i][0], remain_msg_list[i][1] = remain_query, remain_img_list
+                start = True
 
             # actively start the chat
             elif start_chat not in history[-1][-1] and not start:
                 answer_list = [start_chat]
                 description, img_path = generate_img(text_client, text2img_client)
+                msg_count = count_msg(HER_AVATAR, MY_AVATAR) - msg_count
+                remain_query, remain_img_list = get_remain_msg(LARGE_AVATAR, HER_AVATAR, MY_AVATAR, msg_count)
                 send_img(img_path, LARGE_AVATAR)
                 reply(LARGE_AVATAR, HER_AVATAR, MY_AVATAR, answer_list)
                 history[-1][-1] += ',' + start_chat + f'[图片](描述{description})'

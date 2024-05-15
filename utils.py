@@ -1,20 +1,19 @@
 import os.path
-
+from io import BytesIO
+import pickle
+import re
+import random
+import time
+import datetime
+from collections import Counter
+import requests
+from lxml import etree
 import pyautogui
 import pyperclip
-import time
-from collections import Counter
 from PIL import ImageGrab, Image
 import gradio_client
 import geocoder
-import datetime
-import requests
-from lxml import etree
-import re
 import win32clipboard
-from io import BytesIO
-import pickle
-import random
 
 
 def _mouseclick(img):
@@ -56,10 +55,12 @@ def _get_msg_pos(her_avatar, my_avatar):
     return her_x, her_y
 
 
-def _get_msg(large_avatar, her_avatar, my_avatar):
+def _get_msg(large_avatar, her_avatar, my_avatar, remain):
     try:
         _mouseclick(large_avatar)
         x, ys = _get_msg_pos(her_avatar, my_avatar)
+        if remain is not None:
+            ys = ys[-remain:]
         msg_list = []
         img_list = []
         if ys:
@@ -94,10 +95,10 @@ def _get_msg(large_avatar, her_avatar, my_avatar):
             msg = '，'.join(msg_list)
             return msg, img_list
         else:
-            return None, None
+            return '', []
     except:
         print('not detected')
-        return None, None
+        return '', []
 
 
 def _describe_img(img, client):
@@ -202,12 +203,12 @@ def enhance_prompt():
     return add
 
 
-def check_msg(large_avatar, her_avatar, my_avatar):
+def check_msg(large_avatar, her_avatar, my_avatar, wait=7, remain=None):
     check_list = [[], []]
     flag = 1
     attempt = 0
     while True:
-        query, img_list = _get_msg(large_avatar, her_avatar, my_avatar)
+        query, img_list = _get_msg(large_avatar, her_avatar, my_avatar, remain)
         if flag == 1:
             check_list[1] = [query, img_list]
             flag = -flag
@@ -221,13 +222,18 @@ def check_msg(large_avatar, her_avatar, my_avatar):
             print('wait for more message')
         if attempt >= 10:
             break
-        time.sleep(7)
+        time.sleep(wait)
         attempt += 1
 
     if attempt >= 10:
-        return None, None
+        return '', []
     else:
         return query, img_list
+
+
+def count_msg(her_avatar, my_avatar):
+    x, ys = _get_msg_pos(her_avatar, my_avatar)
+    return len(ys)
 
 
 def _list_trans(input_list):
@@ -290,6 +296,10 @@ def _get_history(large_avatar, her_avatar, my_avatar):
                         time.sleep(0.2)
                     except:
                         _mouseclick(large_avatar)
+                if temp_msg_list[0] == '':
+                    temp_msg_list[0] = '[消息]'
+                if temp_msg_list[1] == '':
+                    temp_msg_list[1] = '[消息]'
                 msg_list.append(temp_msg_list)
         return msg_list
     except:
@@ -381,7 +391,7 @@ def generate_img(text_client, img_client, user_description=None):
 
 def get_history_save_path(bath_path='history'):
     save_time = datetime.datetime.now().strftime("%Y%m%d%H%M")
-    save_path = os.path.join(bath_path, save_time+'.pkl')
+    save_path = os.path.join(bath_path, save_time + '.pkl')
     return save_path
 
 
@@ -403,7 +413,6 @@ def save_history(history, start_history, save_path):
                 else:
                     new_list.append(item)
             end_history.append(new_list)
-        formatted_datetime = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
         with open(save_path, 'wb') as f:
             pickle.dump(end_history, f)
         print('history saved')
@@ -412,3 +421,19 @@ def save_history(history, start_history, save_path):
 
 def roll_dice(odd=0.2):
     return random.random() <= odd
+
+
+def creat_remain_list(friend_list):
+    remain = []
+    len_friend_list = len(friend_list)
+    for i in range(len_friend_list):
+        remain.append(['', []])
+    return remain
+
+
+def get_remain_msg(large_avatar, her_avatar, my_avatar, msg_count, wait=3):
+    if msg_count > 0:
+        remain_query, remain_img_list = check_msg(large_avatar, her_avatar, my_avatar, wait, msg_count)
+    else:
+        remain_query, remain_img_list = '', []
+    return remain_query, remain_img_list

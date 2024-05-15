@@ -11,7 +11,9 @@
 ## 更新说明
 
 ### 2024-5-16
-1. 优化回答生成时的消息接收
+1. 修复读取不含文字的历史记录后报错
+2. 优化回答生成时的消息接收
+
 
 ### 2024-5-15
 1. 修复bug
@@ -48,10 +50,10 @@
 ### 通过配置文件安装
 ```bash
 # Create conda environment
-conda create -n wechatbot python=3.9
+conda create -n chatlyt python=3.9
 
 # Activate the environment
-conda activate wechatbot
+conda activate chatlyt
 
 # Install packages
 pip install -r requirements.yml
