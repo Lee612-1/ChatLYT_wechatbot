@@ -1,6 +1,6 @@
 import json
 import argparse
-from gradio_client import Client
+from openai import OpenAI
 from utils import *
 
 
@@ -20,9 +20,15 @@ if __name__ == '__main__':
         FRIENDS = [friend['dir'] for friend in friend_dir]
 
     MY_AVATAR = 'object/myavatar.png'
-    text_client = Client("Qwen/Qwen1.5-110B-Chat-demo")
-    img2text_client = Client("openbmb/MiniCPM-V-2")
-    text2img_client = Client("ByteDance/Hyper-SDXL-1Step-T2I")
+    with open('key.txt', 'r') as file:
+        api_key = file.read()
+    client = OpenAI(
+        # defaults to os.environ.get("OPENAI_API_KEY")
+        api_key=api_key,
+        base_url="https://api.chatanywhere.tech/v1"
+    )
+    text_model = 'gpt-4o'
+    img_model = 'dall-e-3'
     history_list = process_history(FRIENDS, MY_AVATAR)
     start_history_list = history_list[:]
     history_save_path = get_history_save_path()
@@ -54,31 +60,22 @@ if __name__ == '__main__':
             img_list = remain_img_list + img_list
             msg_count = count_msg(HER_AVATAR, MY_AVATAR)
 
-            if query != '':
-                if 'exit' in query.lower():
+            if query != '' or img_list:
+                if query != '' and 'exit' in query.lower():
                     break
-
-                # process image to text and text to image
-                img_path = ''
-                text2img = False
-                if img_list:
-                    img_query = process_img_query(img_list, img2text_client)
-                    if img_query is not None:
-                        query += img_query
-                else:
-                    if roll_dice(0.01):
-                        _, img_path = generate_img(text_client, text2img_client, query)
-                        text2img = True
+                messages, full_query = process_msg_openai(SYSTEM_PROMPT, history[-10:], query, img_list)
 
                 # generate answers
-                # print(query, history, SYSTEM_PROMPT)
-                answer, history = generate_answer(query, history, SYSTEM_PROMPT, text_client)
+                answer = generate_answer_openai(messages, client, text_model)
+                history.append([full_query, answer])
+                # 5% probability of generating images
+                img_path = generate_img_openai(get_img_prompt(answer), client, img_model, opp=0.05)
                 msg_count = count_msg(HER_AVATAR, MY_AVATAR) - msg_count
                 remain_query, remain_img_list = get_remain_msg(LARGE_AVATAR, HER_AVATAR, MY_AVATAR, msg_count)
 
                 # process the answer and send the message
                 answer_list = process_answer(answer, args.authentic)
-                if text2img:
+                if img_path != '':
                     send_img(img_path, LARGE_AVATAR)
                 ids = reply(LARGE_AVATAR, HER_AVATAR, MY_AVATAR, answer_list)
 
@@ -106,4 +103,3 @@ if __name__ == '__main__':
             save_history(history_list, start_history_list, history_save_path)
         if attempt >= 30000:
             break
-

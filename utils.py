@@ -14,6 +14,7 @@ from PIL import ImageGrab, Image
 import gradio_client
 import geocoder
 import win32clipboard
+import base64
 
 
 def _mouseclick(img):
@@ -163,7 +164,7 @@ def process_answer(answer, authentic, length=5):
             answer_list = answer_list[:length]
         return answer_list
     elif authentic == 2:
-        raw_answer_list = re.split(r'[。!]', answer)
+        raw_answer_list = re.split(r'[，。!]', answer)
         answer_list = []
         for raw_answers in raw_answer_list:
             list_list = raw_answers.split('？')
@@ -345,7 +346,13 @@ def _send_to_clipboard(clip_type, data):
 
 
 def _copy_image_to_clipboard(image_path):
-    image = Image.open(image_path)
+    try:
+        image = Image.open(image_path)
+    except:
+        response = requests.get(image_path)
+        if response.status_code == 200:
+            image_bytes = BytesIO(response.content)
+            image = Image.open(image_bytes)
     output = BytesIO()
     # Convert to BMP format here, as the Windows clipboard supports BMP
     image.convert("RGB").save(output, "BMP")
@@ -437,3 +444,78 @@ def get_remain_msg(large_avatar, her_avatar, my_avatar, msg_count, wait=3):
     else:
         remain_query, remain_img_list = '', []
     return remain_query, remain_img_list
+
+
+def encode_image(image_list):
+    base64_img_list = []
+    for image_path in image_list:
+        with open(image_path, "rb") as image_file:
+            base64_img_list.append(base64.b64encode(image_file.read()).decode('utf-8'))
+    return base64_img_list
+
+
+def start_chat(content=None):
+    if content is not None:
+        return content
+    now = datetime.datetime.now()
+    current_hour = now.hour
+    if 4 < current_hour < 10:
+        return "早上好"
+    elif current_hour < 14:
+        return "中午好"
+    elif current_hour < 18:
+        return "下午好"
+    elif current_hour < 24:
+        return "晚上好"
+    else:
+        return "睡了吗"
+
+
+def process_msg_openai(prompt, history, query, img_list):
+    messages = []
+    messages.append({"role": "system", "content": prompt})
+    for pair in history:
+        messages.append({"role": "user", "content": pair[0]})
+        messages.append({"role": "assistant", "content": pair[0]})
+    if query != '' and not img_list:
+        messages.append({"role": "user", "content": query})
+        full_query = query
+    else:
+        if query != '':
+            content = [{"type": "text", "text": query}]
+            full_query = query + '[图片]'
+        else:
+            content = [{"type": "text", "text": '说说你看到这张图片的感受'}]
+            full_query = '[图片]'
+        bs64_list = encode_image(img_list)
+        for url in bs64_list:
+            content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{url}"}})
+        messages.append({"role": "user", "content": content})
+
+    return messages, full_query
+
+
+def generate_answer_openai(messages, client, model):
+    completion = client.chat.completions.create(model=model, messages=messages)
+    answer = completion.choices[0].message.content
+    return answer
+
+
+def generate_img_openai(text, client, model, opp):
+    if roll_dice(opp):
+        response = client.images.generate(
+            model=model,
+            prompt=text,
+            size="1024x1024",
+            quality="standard",
+            n=1,
+        )
+        image_url = response.data[0].url
+        return image_url
+    else:
+        return ''
+
+
+def get_img_prompt(answer):
+    answer_list = re.split(r'[，。!？]', answer)
+    return answer_list[-2]

@@ -10,6 +10,10 @@
 
 ## 更新说明
 
+### 2024-6-14
+1. 优化代码逻辑
+2. 新增gpt模式
+
 ### 2024-5-16
 1. 修复读取不含文字的历史记录后报错
 2. 优化回答生成时的消息接收
@@ -45,6 +49,13 @@
 
 ### 2024-5-10
 1. 文字信息回复
+
+## 使用gpt-4o
+此功能需要openai的api key才可使用,可以在`main_openai.py`中更改model更换其他openai的模型。
+
+```bash
+python -u main_openai.py --person object/friend1
+```
 
 ## 环境配置
 ### 通过配置文件安装
@@ -123,6 +134,8 @@ python -u main.py --authentic 2
 
 ### 更换api
 默认的api是huggingface提供的qwen-110B, 如有需要可自行更改。
+
+如需使用gpt，运行`main_openai.py`
 
 ### 对话记录
 ai启动后会自动将对话记录保存在默认文件夹`history`中，可在`utils.save_history`函数中更改保存目录。
