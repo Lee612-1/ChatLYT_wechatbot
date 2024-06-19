@@ -2,6 +2,7 @@ import json
 import argparse
 from openai import OpenAI
 from utils import *
+import os
 
 
 if __name__ == '__main__':
@@ -15,18 +16,25 @@ if __name__ == '__main__':
     if args.people is None:
         FRIENDS = [args.person]
     else:
-        with open('object/people.json', 'r') as file:
+        with open(args.people, 'r', encoding='utf-8') as file:
             friend_dir = json.load(file)
         FRIENDS = [friend['dir'] for friend in friend_dir]
 
-    MY_AVATAR = 'object/myavatar.png'
-    with open('key.txt', 'r') as file:
+    for file in os.listdir('object'):
+        if file.startswith('myavatar'):
+            MY_AVATAR = os.path.join('object', file)
+            break
+        else:
+            MY_AVATAR = ''
+
+    with open('temp/key.txt', 'r') as file:
         api_key = file.read()
     client = OpenAI(
         # defaults to os.environ.get("OPENAI_API_KEY")
         api_key=api_key,
         base_url="https://api.chatanywhere.tech/v1"
     )
+    print('connected to openai')
     text_model = 'gpt-4o'
     img_model = 'dall-e-3'
     history_list = process_history(FRIENDS, MY_AVATAR)
@@ -56,9 +64,12 @@ if __name__ == '__main__':
             history = history_list[i]
             remain_query, remain_img_list = remain_msg_list[i][0], remain_msg_list[i][1]
             query, img_list = check_msg(LARGE_AVATAR, HER_AVATAR, MY_AVATAR)
+            if query != '' or img_list:
+                msg_count = count_msg(HER_AVATAR, MY_AVATAR)
+            else:
+                msg_count = 0
             query = remain_query + query
             img_list = remain_img_list + img_list
-            msg_count = count_msg(HER_AVATAR, MY_AVATAR)
 
             if query != '' or img_list:
                 if query != '' and 'exit' in query.lower():
@@ -88,7 +99,7 @@ if __name__ == '__main__':
                 start = True
 
             # actively start the chat
-            elif start_chat not in history[-1][-1] and not start:
+            elif history and start_chat not in history[-1][-1] and not start:
                 answer_list = [start_chat]
                 reply(LARGE_AVATAR, HER_AVATAR, MY_AVATAR, answer_list)
                 history[-1][-1] += ',' + start_chat

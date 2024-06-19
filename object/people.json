@@ -1,14 +1,1 @@
-[
-   {
-      "name": "friend1",
-      "dir": "object/friend1"
-   },
-   {
-      "name": "friend2",
-      "dir": "object/friend2"
-   },
-   {
-      "name": "firend3",
-      "dir": "object/friend3"
-   }
-]
+[{"name": "\u9648\u79b9\u5b89", "dir": "object/chenyuan"}, {"name": "\u5988\u5988", "dir": "object/mom"}, {"name": "\u90a2\u6234\u6f14", "dir": "object/xingdaiyan"}, {"name": "\u8bb8\u822a", "dir": "object/xuhang"}, {"name": "\u90b9\u6d9b", "dir": "object/zoutao"}, {"name": "\u6797\u4e3a\u5c27", "dir": "object\\linweiyao"}]

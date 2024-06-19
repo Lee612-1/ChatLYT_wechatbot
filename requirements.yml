@@ -7,3 +7,5 @@ geocoder==1.38.1
 lxml==5.2.1
 pywin32==306
 openai==1.34.0
+easydict==1.13
+pypinyin==0.51.0
