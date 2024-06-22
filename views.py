@@ -320,13 +320,31 @@ class FriendFrame(tk.Frame):
         self.file_path1 = None
         self.file_path2 = None
 
+        if not os.path.exists('object/people.json'):
+            self.friend_dir = []
+            self.friend_name = []
+        else:
+            with open('object/people.json', 'r', encoding='utf-8') as file:
+                self.friend_dir = json.load(file)
+                self.friend_name = [friend['name'] for friend in self.friend_dir]
+
         tk.Label(self, text='', height=2).pack()
         frame3 = tk.Frame(self)
         frame3.pack()
-        tk.Label(frame3, text="好友名称:", font=('微软雅黑', 12, 'bold'), width=8, anchor='w').pack(side=tk.LEFT,
-                                                                                                     padx=20)
-        e = ttk.Entry(frame3, width=25)
+        tk.Label(frame3, text="好友名称:", font=('微软雅黑', 12, 'bold'), width=8, anchor='w').pack(side=tk.LEFT, padx=20)
+        entry_text = tk.StringVar()
+        e = ttk.Entry(frame3, width=25, textvariable=entry_text)
+
+        def on_entry_change(*args):
+            text = entry_text.get()
+            if text in self.friend_name:
+                name_label.config(text='     已存在改名称', fg='red')
+            else:
+                name_label.config(text='')
         e.pack(side=tk.LEFT, padx=35)
+        entry_text.trace("w", on_entry_change)
+        name_label = tk.Label(self, text='', height=1)
+        name_label.pack()
 
         tk.Label(self, text='', height=1).pack()
         frame2 = tk.Frame(self)
@@ -405,15 +423,7 @@ class FriendFrame(tk.Frame):
                 messagebox.showinfo("提示", "请上传聊天界面头像！")
                 return
             else:
-                if not os.path.exists('object/people.json'):
-                    friend_dir = []
-                    friend_name = []
-                else:
-                    with open('object/people.json', 'r', encoding='utf-8') as file:
-                        friend_dir = json.load(file)
-                        friend_name = [friend['name'] for friend in friend_dir]
-
-                if e.get() in friend_name:
+                if e.get() in self.friend_name:
                     messagebox.showinfo("提示", "好友名称已存在！")
                     return
                 folder = ''.join(lazy_pinyin(e.get()))
@@ -429,7 +439,7 @@ class FriendFrame(tk.Frame):
                         break
                 folder_path = os.path.join(base_path, folder_re)
                 os.makedirs(folder_path)
-                friend_dir.append({'name': e.get(), "dir": folder_path})
+                self.friend_dir.append({'name': e.get(), "dir": folder_path})
                 shutil.copy(self.file_path1, folder_path)
                 shutil.copy(self.file_path2, folder_path)
 
@@ -448,7 +458,7 @@ class FriendFrame(tk.Frame):
                 with open(os.path.join(folder_path, 'role.txt'), "w", encoding='utf-8') as file:
                     file.write(role)
                 with open('object/people.json', 'w', encoding='utf-8') as file:
-                    json.dump(friend_dir, file)
+                    json.dump(self.friend_dir, file)
                 messagebox.showinfo("提示", "新建成功！")
                 e.delete(0, 'end')
                 canvas1.delete("all")
@@ -456,6 +466,13 @@ class FriendFrame(tk.Frame):
                 text.delete(1.0, tk.END)
                 button1.config(text='选择图片')
                 button2.config(text='选择图片')
+                if not os.path.exists('object/people.json'):
+                    self.friend_dir = []
+                    self.friend_name = []
+                else:
+                    with open('object/people.json', 'r', encoding='utf-8') as file:
+                        self.friend_dir = json.load(file)
+                        self.friend_name = [friend['name'] for friend in self.friend_dir]
 
         tk.Label(self, text='', height=3).pack()
         ttk.Button(self, text="确定", cursor="hand2", command=confirm, width=10).pack(padx=5)
@@ -473,10 +490,10 @@ class FriendReviseFrame(tk.Frame):
             with open(friend_path, 'r', encoding='utf-8') as f:
                 self.friends = json.load(f)
             self.friend_name = [friend['name'] for friend in self.friends]
-            friend_dir = [friend['dir'] for friend in self.friends]
+            self.friend_dir = [friend['dir'] for friend in self.friends]
         else:
             self.friend_name = []
-            friend_dir = []
+            self.friend_dir = []
         selected_friend = tk.StringVar()
 
         top_canvas = tk.Canvas(self, width=300, height=100)
@@ -643,6 +660,11 @@ class FriendReviseFrame(tk.Frame):
                 revise_frame4.pack_forget()
                 revise_frame2.pack()
                 return
+            if e.get() != selected_friend.get() and e.get() in self.friend_name:
+                messagebox.showinfo("提示", "好友名称已存在！")
+                revise_frame4.pack_forget()
+                revise_frame2.pack()
+                return
             if not self.path:
                 messagebox.showinfo("提示", "路径错误！")
                 return
@@ -692,6 +714,14 @@ class FriendReviseFrame(tk.Frame):
                 text.delete(1.0, tk.END)
                 button1.config(text='选择图片')
                 button2.config(text='选择图片')
+                if os.path.exists(friend_path):
+                    with open(friend_path, 'r', encoding='utf-8') as f:
+                        self.friends = json.load(f)
+                    self.friend_name = [friend['name'] for friend in self.friends]
+                    self.friend_dir = [friend['dir'] for friend in self.friends]
+                else:
+                    self.friend_name = []
+                    self.friend_dir = []
                 revise_frame4.pack_forget()
                 revise_frame.pack()
 
@@ -701,7 +731,7 @@ class FriendReviseFrame(tk.Frame):
 
         def on_select(event):
             index = self.friend_name.index(selected_friend.get())
-            self.path = friend_dir[index]
+            self.path = self.friend_dir[index]
             role_path = os.path.join(self.path, 'role.txt')
             with open(role_path, 'r', encoding='utf-8') as file:
                 self.role = file.read()
@@ -738,17 +768,22 @@ class FlstFrame(tk.Frame):
         else:
             friend_name = []
             friend_dir = []
-        friend_list_names = []
+        self.friend_list_names = []
         list_file_names = []
-        json_file = []
+        self.json_file = []
         if os.path.exists('object/friend_list'):
             list_file_names = os.listdir('object/friend_list')
             if os.path.exists('object/friend_list/list_name.json'):
                 with open('object/friend_list/list_name.json', 'r', encoding='utf-8') as f:
-                    json_file = json.load(f)
-                friend_list_names = [list['name'] for list in json_file]
+                    self.json_file = json.load(f)
+                self.friend_list_names = [list['name'] for list in self.json_file]
         else:
             os.makedirs('object/friend_list')
+        self.sign_image = Image.open('assets/sign9.png')
+        self.sign_photo = ImageTk.PhotoImage(self.sign_image)
+        self.sign_label = tk.Label(self, image=self.sign_photo)
+        self.sign_label.image = self.sign_photo  # 保持对图片的引用，防止被垃圾回收
+        self.sign_label.pack()
         tk.Label(self, text='', height=2).pack()
         frame3 = tk.Frame(self)
         frame3.pack()
@@ -758,14 +793,15 @@ class FlstFrame(tk.Frame):
 
         def on_entry_change(*args):
             text = entry_text.get()
-            if text == 'hello':
-                name_label.config(text='已存在改名称', fg='red')
+            if text in self.friend_list_names:
+                name_label.config(text='     已存在改名称', fg='red')
             else:
                 name_label.config(text='')
         e.pack(side=tk.LEFT, padx=35)
         entry_text.trace("w", on_entry_change)
         name_label = tk.Label(self, text='', height=1)
         name_label.pack()
+        tk.Label(self, text='', height=1).pack()
 
         def create_list():
             list_ = []
@@ -777,7 +813,7 @@ class FlstFrame(tk.Frame):
             if not selected_dir or not selected_names:
                 messagebox.showinfo("提示", "请选择好友！")
                 return
-            if e.get() in friend_list_names:
+            if e.get() in self.friend_list_names:
                 messagebox.showinfo("提示", "列表名称已存在！")
                 return
             for name, dir in zip(selected_names, selected_dir):
@@ -790,13 +826,17 @@ class FlstFrame(tk.Frame):
                         break
                 with open(this_file_path, 'w', encoding='utf-8') as f:
                     json.dump(list_, f)
-                json_file.append({'name': e.get(), 'dir': this_file_path})
+                self.json_file.append({'name': e.get(), 'dir': this_file_path})
                 with open('object/friend_list/list_name.json', 'w', encoding='utf-8') as f:
-                    json.dump(json_file, f)
+                    json.dump(self.json_file, f)
                 messagebox.showinfo("提示", "创建成功！")
                 e.delete(0, 'end')
                 for var in check_vars:
                     var.set(0)
+                if os.path.exists('object/friend_list/list_name.json'):
+                    with open('object/friend_list/list_name.json', 'r', encoding='utf-8') as f:
+                        self.json_file = json.load(f)
+                    self.friend_list_names = [list['name'] for list in self.json_file]
 
         def on_mousewheel(event):
             canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
@@ -844,6 +884,7 @@ class FlstFrame(tk.Frame):
         canvas.config(scrollregion=canvas.bbox("all"))
 
         # 添加一个按钮，当点击时会显示被选中的names
+        tk.Label(self, text='', height=3).pack()
         btn_show = ttk.Button(self, text="确定", style='Custom.TButton', command=create_list)
         btn_show.pack()
 
@@ -851,12 +892,461 @@ class FlstFrame(tk.Frame):
 class FlstReviseFrame(tk.Frame):
     def __init__(self, root):
         super().__init__(root)
-        tk.Label(self, text='修改好友列表', height=2).pack()
+        friend_path = 'object/people.json'
+        if os.path.exists(friend_path):
+            with open(friend_path, 'r', encoding='utf-8') as f:
+                friends = json.load(f)
+            friend_name = [friend['name'] for friend in friends]
+            friend_dir = [friend['dir'] for friend in friends]
+        else:
+            friend_name = []
+            friend_dir = []
+        self.json_file = []
+        if os.path.exists('object/friend_list'):
+            if os.path.exists('object/friend_list/list_name.json'):
+                with open('object/friend_list/list_name.json', 'r', encoding='utf-8') as f:
+                    self.json_file = json.load(f)
+                self.friend_list_names = [list['name'] for list in self.json_file]
+                self.list_path_names = [list['dir'] for list in self.json_file]
+            else:
+                self.friend_list_names = []
+                self.list_path_names = []
+        else:
+            os.makedirs('object/friend_list')
+        self.sign_image = Image.open('assets/sign10.png')
+        self.sign_photo = ImageTk.PhotoImage(self.sign_image)
+        self.sign_label = tk.Label(self, image=self.sign_photo)
+        self.sign_label.image = self.sign_photo  # 保持对图片的引用，防止被垃圾回收
+        self.sign_label.pack()
+        tk.Label(self, text='', height=1).pack()
+        selected_list = tk.StringVar()
+        buttons_frame2 = tk.Frame(self)
+        buttons_frame2.pack()
+        tk.Label(buttons_frame2, text="选择好友列表: ", font=('微软雅黑', 12, "bold"), width=13, anchor="w").pack(
+            side=tk.LEFT)
+        comb = ttk.Combobox(buttons_frame2, style='Custom.TCombobox', textvariable=selected_list, values=self.friend_list_names)
+        comb.pack(side=tk.RIGHT, padx=15)
+
+        tk.Label(self, text='', height=2).pack()
+
+        def create_list():
+            list_ = []
+            selected_names = [name for name, var in zip(friend_name, check_vars) if var.get()]
+            selected_dir = [dir for dir, var in zip(friend_dir, check_vars) if var.get()]
+            if not selected_list.get():
+                messagebox.showinfo("提示", "请选择列表！")
+                return
+            if e.get() == '':
+                messagebox.showinfo("提示", "请输入列表名称！")
+                return
+            if e.get() != selected_list.get() and e.get() in self.friend_list_names:
+                messagebox.showinfo("提示", "列表名称已存在！")
+                return
+            if not selected_dir or not selected_names:
+                messagebox.showinfo("提示", "请选择好友！")
+                return
+            for name, dir in zip(selected_names, selected_dir):
+                list_.append({'name': name, 'dir': dir})
+            if messagebox.askokcancel("确认", "确认创建？"):
+                for it in self.json_file:
+                    if it['name'] == selected_list.get():
+                        it['name'] = e.get()
+                        with open(it['dir'], 'w', encoding='utf-8') as f:
+                            json.dump(list_, f)
+                with open('object/friend_list/list_name.json', 'w', encoding='utf-8') as f:
+                    json.dump(self.json_file, f)
+                if os.path.exists('object/friend_list/list_name.json'):
+                    with open('object/friend_list/list_name.json', 'r', encoding='utf-8') as f:
+                        self.json_file = json.load(f)
+                    self.friend_list_names = [list['name'] for list in self.json_file]
+                    self.list_path_names = [list['dir'] for list in self.json_file]
+                else:
+                    self.friend_list_names = []
+                    self.list_path_names = []
+                messagebox.showinfo("提示", "创建成功！")
+                e.delete(0, 'end')
+                comb.set('')
+                for var in check_vars:
+                    var.set(0)
+                comb.config(values=self.friend_list_names)
+
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        # 创建一个BooleanVar列表用于存储每个多选框的状态
+        check_vars = [tk.BooleanVar() for _ in friend_name]
+
+        frame2 = ttk.Frame(self)
+        frame2.pack()
+        # 创建滚动条
+        scrollbar = ttk.Scrollbar(frame2)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # 创建Canvas
+        canvas = tk.Canvas(frame2, borderwidth=0, width=300, height=200)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # 将滚动条与Canvas关联
+        scrollbar.config(command=canvas.yview)
+        canvas.config(yscrollcommand=scrollbar.set)
+
+        # 在Windows和Linux系统中绑定鼠标滚轮滚动事件
+        canvas.bind_all("<MouseWheel>", on_mousewheel)  # 对于Windows
+        canvas.bind_all("<Button-4>", on_mousewheel)  # 对于Linux, 向上滚动
+        canvas.bind_all("<Button-5>", on_mousewheel)  # 对于Linux, 向下滚动
+
+        # 创建一个frame放置在canvas上
+        frame = tk.Frame(canvas)
+        canvas.create_window((0, 0), window=frame, anchor='nw')
+        # 为列表中的每个name创建一个多选框
+        avatar_path = 'assets/sign4.png'
+        for i, name in enumerate(friend_name):
+            for file in os.listdir(friend_dir[i]):
+                if file.startswith('avatar'):
+                    avatar_path = os.path.join(friend_dir[i], file)
+            checkbox_image = Image.open(avatar_path)
+            checkbox_image = checkbox_image.resize((35, 35))
+            checkbox_photo = ImageTk.PhotoImage(checkbox_image)
+            cb = ttk.Checkbutton(frame, text=name, image=checkbox_photo, compound="left", variable=check_vars[i])
+            cb.image = checkbox_photo
+            cb.pack(anchor='w', fill='x')
+
+        # 更新滚动区域大小
+        frame.update_idletasks()
+        canvas.config(scrollregion=canvas.bbox("all"))
+
+        tk.Label(self, text='', height=2).pack()
+        frame3 = tk.Frame(self)
+        frame3.pack()
+        tk.Label(frame3, text="修改列表名称:", font=('微软雅黑', 12, 'bold'), width=10, anchor='w').pack(side=tk.LEFT,
+                                                                                                         padx=20)
+        e = ttk.Entry(frame3, width=25)
+        e.pack(side=tk.LEFT, padx=20)
+
+        # 添加一个按钮，当点击时会显示被选中的names
+        tk.Label(self, text='', height=3).pack()
+        btn_show = ttk.Button(self, text="确定", style='Custom.TButton', command=create_list)
+        btn_show.pack()
+
+        def on_select(event):
+            e.delete(0, 'end')
+            for var in check_vars:
+                var.set(0)
+            e.insert(0, selected_list.get())
+            for name, path in zip(self.friend_list_names, self.list_path_names):
+                if name == selected_list.get():
+                    with open(path, 'r', encoding='utf-8') as f:
+                        temp = json.load(f)
+            temp_name = [name['name'] for name in temp]
+            for name, var in zip(friend_name,check_vars):
+                if name in temp_name:
+                    var.set(1)
+
+        comb.bind("<<ComboboxSelected>>", on_select)
+
+
+class DeleteFrame(tk.Frame):
+    def __init__(self, root):
+        super().__init__(root)
+        friend_path = 'object/people.json'
+        self.friends = []
+        if os.path.exists(friend_path):
+            with open(friend_path, 'r', encoding='utf-8') as f:
+                self.friends = json.load(f)
+            self.friend_name = [friend['name'] for friend in self.friends]
+            self.friend_dir = [friend['dir'] for friend in self.friends]
+        else:
+            self.friend_name = []
+            self.friend_dir = []
+        self.json_file = []
+        if os.path.exists('object/friend_list'):
+            if os.path.exists('object/friend_list/list_name.json'):
+                with open('object/friend_list/list_name.json', 'r', encoding='utf-8') as f:
+                    self.json_file = json.load(f)
+                self.friend_list_names = [list['name'] for list in self.json_file]
+                self.list_path_names = [list['dir'] for list in self.json_file]
+            else:
+                self.friend_list_names = []
+                self.list_path_names = []
+        else:
+            os.makedirs('object/friend_list')
+
+        self.sign_image = Image.open('assets/sign11.png')
+        self.sign_photo = ImageTk.PhotoImage(self.sign_image)
+        self.sign_label = tk.Label(self, image=self.sign_photo)
+        self.sign_label.image = self.sign_photo  # 保持对图片的引用，防止被垃圾回收
+        self.sign_label.pack()
+        tk.Label(self, text='', height=3).pack()
+        selected_mode = tk.IntVar(value=0)
+        selected_delete = tk.StringVar()
+        def show_combobox():
+            if selected_mode.get() == 0:
+                comb.config(values=self.friend_name)
+                selected_delete.set('')
+            else:
+                comb.config(values=self.friend_list_names)
+                selected_delete.set('')
+
+        buttons_frame = tk.Frame(self)
+        buttons_frame.pack()
+        radio_button1 = ttk.Radiobutton(buttons_frame, text="删除好友资料", style='Custom.TRadiobutton', cursor="hand2",
+                                        variable=selected_mode, value=0, command=show_combobox)
+        radio_button2 = ttk.Radiobutton(buttons_frame, text="删除好友列表", style='Custom.TRadiobutton', cursor="hand2",
+                                        variable=selected_mode, value=1, command=show_combobox)
+        radio_button1.pack(side=tk.LEFT, padx=10)
+        radio_button2.pack(side=tk.RIGHT, padx=10)
+        tk.Label(self, text='', height=3).pack()
+
+        buttons_frame3 = tk.Frame(self)
+        buttons_frame3.pack()
+        tk.Label(buttons_frame3, text="选择好友/列表: ", font=('微软雅黑', 12, "bold"), width=15, anchor="w").pack(
+            side=tk.LEFT)
+        comb = ttk.Combobox(buttons_frame3, style='Custom.TCombobox', textvariable=selected_delete, values=self.friend_name)
+        comb.pack(side=tk.RIGHT)
+        tk.Label(self, text='', height=5).pack()
+
+        def delete():
+            if not selected_delete.get():
+                messagebox.showinfo("提示", "请选择删除对象！")
+                return
+            if messagebox.askokcancel("确认", "确认删除？"):
+                if selected_mode.get() == 0:
+                    index = self.friend_name.index(selected_delete.get())
+                    shutil.rmtree(self.friend_dir[index])
+                    self.friends = [x for x in self.friends if x['name'] != selected_delete.get()]
+                    with open('object/people.json', 'w', encoding='utf-8') as f:
+                        json.dump(self.friends, f)
+                if selected_mode.get() == 1:
+                    index = self.friend_list_names.index(selected_delete.get())
+                    os.remove(self.list_path_names[index])
+                    self.json_file = [x for x in self.json_file if x['name'] != selected_delete.get()]
+                    with open('object/friend_list/list_name.json', 'w', encoding='utf-8') as f:
+                        json.dump(self.json_file, f)
+
+                with open(friend_path, 'r', encoding='utf-8') as f:
+                    self.friends = json.load(f)
+                self.friend_name = [friend['name'] for friend in self.friends]
+                self.friend_dir = [friend['dir'] for friend in self.friends]
+                with open('object/friend_list/list_name.json', 'r', encoding='utf-8') as f:
+                    self.json_file = json.load(f)
+                self.friend_list_names = [list['name'] for list in self.json_file]
+                self.list_path_names = [list['dir'] for list in self.json_file]
+
+                messagebox.showinfo("提示", "删除成功！")
+                selected_mode.set(0)
+                comb.set('')
+                comb.config(values=self.friend_name)
+
+        btn_show = ttk.Button(self, text="确定", style='Custom.TButton', command=delete)
+        btn_show.pack()
+
 
 
 class InitFrame(tk.Frame):
     def __init__(self, root):
         super().__init__(root)
-        tk.Label(self, text='初始化', height=2).pack()
+        self.file_path1 = None
+        self.file_path2 = None
+        self.file_path3 = None
+        self.file_path4 = None
+        self.file_path5 = None
+        tk.Label(self, text='', height=1).pack()
+        frame1 = tk.Frame(self)
+        frame1.pack()
+        canvas1 = tk.Canvas(self, width=300, height=70)
+        canvas1.pack()
+        if os.path.exists('object/myavatar.png'):
+            avatar_image = Image.open('object/myavatar.png')
+        else:
+            avatar_image = Image.open('assets/sign4.png')
+        avatar_photo = ImageTk.PhotoImage(avatar_image)
+        canvas1.create_image(150, 30, image=avatar_photo, anchor='w')
+        canvas1.image = avatar_photo
 
+        def load_my_avatar():
+            self.file_path1 = filedialog.askopenfilename(filetypes=[('Image files', '*.jpg;*.jpeg;*.png;*.gif')])
+            if self.file_path1:
+                canvas1.delete("all")
+                image = Image.open(self.file_path1)
+                photo = ImageTk.PhotoImage(image)
+                canvas1.create_image(150, 30, image=photo, anchor='w')
+                canvas1.image = photo
+                button1.config(text='重新选择')
+
+        tk.Label(frame1, text="我的头像：", font=('微软雅黑', 12, 'bold'),width=8,anchor='w').pack(side=tk.LEFT, padx=10)
+        button1 = ttk.Button(frame1, text="选择图片", width=30, cursor="hand2",
+                             command=load_my_avatar)
+        button1.pack(side=tk.RIGHT)
+
+        frame2 = tk.Frame(self)
+        frame2.pack()
+        canvas2 = tk.Canvas(self, width=300, height=70)
+        canvas2.pack()
+        if os.path.exists('object/send.png'):
+            send_image = Image.open('object/send.png')
+        else:
+            send_image = Image.open('assets/sign4.png')
+        send_photo = ImageTk.PhotoImage(send_image)
+        canvas2.create_image(150, 30, image=send_photo, anchor='w')
+        canvas2.image = send_photo
+
+        def load_send():
+            self.file_path2 = filedialog.askopenfilename(filetypes=[('Image files', '*.jpg;*.jpeg;*.png;*.gif')])
+            if self.file_path2:
+                canvas2.delete("all")
+                image = Image.open(self.file_path2)
+                photo = ImageTk.PhotoImage(image)
+                canvas2.create_image(150, 30, image=photo, anchor='w')
+                canvas2.image = photo
+                button2.config(text='重新选择')
+
+        tk.Label(frame2, text="发送：", font=('微软雅黑', 12, 'bold'),width=8,anchor='w').pack(side=tk.LEFT, padx=10)
+        button2 = ttk.Button(frame2, text="选择图片", width=30, cursor="hand2",
+                             command=load_send)
+        button2.pack(side=tk.RIGHT)
+
+        frame3 = tk.Frame(self)
+        frame3.pack()
+        canvas3 = tk.Canvas(self, width=300, height=70)
+        canvas3.pack()
+        if os.path.exists('object/duplicate.png'):
+            dup_image = Image.open('object/duplicate.png')
+        else:
+            dup_image = Image.open('assets/sign4.png')
+        dup_photo = ImageTk.PhotoImage(dup_image)
+        canvas3.create_image(150, 30, image=dup_photo, anchor='w')
+        canvas3.image = dup_photo
+
+        def load_dup():
+            self.file_path3 = filedialog.askopenfilename(filetypes=[('Image files', '*.jpg;*.jpeg;*.png;*.gif')])
+            if self.file_path3:
+                canvas3.delete("all")
+                image = Image.open(self.file_path3)
+                photo = ImageTk.PhotoImage(image)
+                canvas3.create_image(150, 30, image=photo, anchor='w')
+                canvas3.image = photo
+                button3.config(text='重新选择')
+
+        tk.Label(frame3, text="复制：", font=('微软雅黑', 12, 'bold'), width=8, anchor='w').pack(side=tk.LEFT, padx=10)
+        button3 = ttk.Button(frame3, text="选择图片", width=30, cursor="hand2",
+                             command=load_dup)
+        button3.pack(side=tk.RIGHT)
+
+        frame4 = tk.Frame(self)
+        frame4.pack()
+        canvas4 = tk.Canvas(self, width=300, height=70)
+        canvas4.pack()
+        if os.path.exists('object/meme.png'):
+            meme_image = Image.open('object/meme.png')
+        else:
+            meme_image = Image.open('assets/sign4.png')
+        meme_photo = ImageTk.PhotoImage(meme_image)
+        canvas4.create_image(150, 30, image=meme_photo, anchor='w')
+        canvas4.image = meme_photo
+
+        def load_meme():
+            self.file_path4 = filedialog.askopenfilename(filetypes=[('Image files', '*.jpg;*.jpeg;*.png;*.gif')])
+            if self.file_path4:
+                canvas4.delete("all")
+                image = Image.open(self.file_path4)
+                photo = ImageTk.PhotoImage(image)
+                canvas4.create_image(150, 30, image=photo, anchor='w')
+                canvas4.image = photo
+                button4.config(text='重新选择')
+
+        tk.Label(frame4, text="添加表情：", font=('微软雅黑', 12, 'bold'), width=8, anchor='w').pack(side=tk.LEFT, padx=10)
+        button4 = ttk.Button(frame4, text="选择图片", width=30, cursor="hand2",
+                             command=load_meme)
+        button4.pack(side=tk.RIGHT)
+
+        frame5 = tk.Frame(self)
+        frame5.pack()
+        canvas5 = tk.Canvas(self, width=300, height=70)
+        canvas5.pack()
+        if os.path.exists('object/audio.png'):
+            audio_image = Image.open('object/audio.png')
+        else:
+            audio_image = Image.open('assets/sign4.png')
+        audio_photo = ImageTk.PhotoImage(audio_image)
+        canvas5.create_image(150, 30, image=audio_photo, anchor='w')
+        canvas5.image = audio_photo
+
+        def load_audio():
+            self.file_path5 = filedialog.askopenfilename(filetypes=[('Image files', '*.jpg;*.jpeg;*.png;*.gif')])
+            if self.file_path5:
+                canvas5.delete("all")
+                image = Image.open(self.file_path5)
+                photo = ImageTk.PhotoImage(image)
+                canvas5.create_image(150, 30, image=photo, anchor='w')
+                canvas5.image = photo
+                button5.config(text='重新选择')
+
+        tk.Label(frame5, text="转文字：", font=('微软雅黑', 12, 'bold'), width=8, anchor='w').pack(side=tk.LEFT,
+                                                                                                    padx=10)
+        button5 = ttk.Button(frame5, text="选择图片", width=30, cursor="hand2",
+                             command=load_audio)
+        button5.pack(side=tk.RIGHT)
+
+        def confirm():
+            if self.file_path1:
+                os.remove('object/myavatar.png')
+                shutil.copy(self.file_path1, 'object')
+                file_name = os.path.basename(self.file_path1)
+                target_file = os.path.join('object', file_name)
+                os.rename(target_file, 'object/myavatar.png')
+                canvas1.delete("all")
+                image = Image.open('object/myavatar.png')
+                photo = ImageTk.PhotoImage(image)
+                canvas1.create_image(150, 30, image=photo, anchor='w')
+                canvas1.image = photo
+            if self.file_path2:
+                os.remove('object/send.png')
+                shutil.copy(self.file_path1, 'object')
+                file_name = os.path.basename(self.file_path2)
+                target_file = os.path.join('object', file_name)
+                os.rename(target_file, 'object/send.png')
+                canvas2.delete("all")
+                image = Image.open('object/send.png')
+                photo = ImageTk.PhotoImage(image)
+                canvas2.create_image(150, 30, image=photo, anchor='w')
+                canvas2.image = photo
+            if self.file_path3:
+                os.remove('object/duplicate.png')
+                shutil.copy(self.file_path1, 'object')
+                file_name = os.path.basename(self.file_path3)
+                target_file = os.path.join('object', file_name)
+                os.rename(target_file, 'object/duplicate.png')
+                canvas3.delete("all")
+                image = Image.open('object/duplicate.png')
+                photo = ImageTk.PhotoImage(image)
+                canvas3.create_image(150, 30, image=photo, anchor='w')
+                canvas3.image = photo
+            if self.file_path4:
+                os.remove('object/meme.png')
+                shutil.copy(self.file_path1, 'object')
+                file_name = os.path.basename(self.file_path4)
+                target_file = os.path.join('object', file_name)
+                os.rename(target_file, 'object/meme.png')
+                canvas4.delete("all")
+                image = Image.open('object/meme.png')
+                photo = ImageTk.PhotoImage(image)
+                canvas4.create_image(150, 30, image=photo, anchor='w')
+                canvas4.image = photo
+            if self.file_path5:
+                os.remove('object/audio.png')
+                shutil.copy(self.file_path1, 'object')
+                file_name = os.path.basename(self.file_path5)
+                target_file = os.path.join('object', file_name)
+                os.rename(target_file, 'object/audio.png')
+                canvas5.delete("all")
+                image = Image.open('object/audio.png')
+                photo = ImageTk.PhotoImage(image)
+                canvas5.create_image(150, 30, image=photo, anchor='w')
+                canvas5.image = photo
+
+            messagebox.showinfo("提示", "初始化完成！")
+
+        tk.Label(self, text='', height=1).pack()
+        btn_show = ttk.Button(self, text="确定", style='Custom.TButton', command=confirm)
+        btn_show.pack()
 
