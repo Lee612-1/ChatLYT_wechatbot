@@ -20,12 +20,7 @@ if __name__ == '__main__':
             friend_dir = json.load(file)
         FRIENDS = [friend['dir'] for friend in friend_dir]
 
-    for file in os.listdir('object'):
-        if file.startswith('myavatar'):
-            MY_AVATAR = os.path.join('object', file)
-            break
-        else:
-            MY_AVATAR = ''
+    MY_AVATAR = 'object/myavatar.png'
 
     with open('temp/key.txt', 'r') as file:
         api_key = file.read()

@@ -15,6 +15,10 @@ python  mainpage.py
 
 ## 更新说明
 
+### 2024-6-26
+1. 修改环境文件
+2. 修复ui显示错误
+
 ### 2024-6-22
 1. 新增ui界面
 2. 新增bug
@@ -76,7 +80,7 @@ conda create -n chatlyt python=3.9
 conda activate chatlyt
 
 # Install packages
-pip install -r requirements.yml
+pip install -r requirements.txt
 ```
 
 ## 使用说明

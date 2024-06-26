@@ -11,6 +11,12 @@ from PIL import Image, ImageTk
 from pypinyin import lazy_pinyin
 import random
 import string
+import sys
+
+BASE_DIR = os.path.dirname(os.path.realpath(sys.argv[0]))
+ASSET_DIR = os.path.join(BASE_DIR, 'assets')
+OBJECT_DIR = os.path.join(BASE_DIR, 'object')
+TEMP_DIR = os.path.join(BASE_DIR, 'temp')
 
 def generate_random_string(length=10):
     letters = string.ascii_letters
@@ -19,7 +25,7 @@ def generate_random_string(length=10):
 class AboutFrame(tk.Frame):
     def __init__(self, root):
         super().__init__(root)
-        self.sign_photo = tk.PhotoImage(file='assets/sign.gif')
+        self.sign_photo = tk.PhotoImage(file=os.path.join(ASSET_DIR,'sign.gif'))
         self.sign_label = tk.Label(self, image=self.sign_photo)
         self.sign_label.image = self.sign_photo  # 保持对图片的引用，防止被垃圾回收
         self.sign_label.pack()
@@ -54,7 +60,7 @@ class RunFrame(tk.Frame):
         self.style.configure('Custom.TButton', font=('微软雅黑', 10))
         self.style.configure('Custom.TCombobox', font=('微软雅黑', 10))
         self.style.configure('Config.TFrame')
-        friend_path = 'object/people.json'
+        friend_path = os.path.join(BASE_DIR,'object/people.json')
         if os.path.exists(friend_path):
             with open(friend_path, 'r', encoding='utf-8') as f:
                 friends = json.load(f)
@@ -64,7 +70,7 @@ class RunFrame(tk.Frame):
             friend_name = []
             friend_dir = []
         api_options = ["huggingface", "openai"]
-        config_path = 'temp/config.json'
+        config_path = os.path.join(BASE_DIR,'temp/config.json')
         if os.path.exists(config_path):
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
@@ -79,7 +85,7 @@ class RunFrame(tk.Frame):
             selected_authentic = tk.IntVar(value=0)
             selected_friend = tk.StringVar()
 
-        self.sign_photo = tk.PhotoImage(file='assets/sign2.gif')
+        self.sign_photo = tk.PhotoImage(file=os.path.join(BASE_DIR,'assets/sign2.gif'))
         self.sign_label = tk.Label(self, image=self.sign_photo, width=350, anchor='e')
         self.sign_label.image = self.sign_photo  # 保持对图片的引用，防止被垃圾回收
         self.sign_label.pack()
@@ -143,16 +149,16 @@ class RunFrame(tk.Frame):
                       'friend': selected_friend.get() if selected_friend.get() else None,
                       'authentic': selected_authentic.get(),
                       }
-            with open('temp/config.json', 'w', encoding='utf-8') as f:
+            with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(config, f)
 
         def run_button():
             order = ["python", "-u"]
             if selected_api.get() == api_options[0]:
-                order.append('main.py')
+                order.append(os.path.join(BASE_DIR,'main.py'))
             elif selected_api.get() == api_options[1]:
-                if os.path.exists('temp/key.txt'):
-                    order.append("main_openai.py")
+                if os.path.exists(os.path.join(BASE_DIR,'temp/key.txt')):
+                    order.append(os.path.join(BASE_DIR,"main_openai.py"))
                 else:
                     top = tk.Toplevel()
                     top.title("输入api key")
@@ -165,7 +171,7 @@ class RunFrame(tk.Frame):
 
                     def check_password():
                         api_key = e.get()
-                        with open('temp/key.txt', "w", encoding='utf-8') as file:
+                        with open(os.path.join(BASE_DIR,'temp/key.txt'), "w", encoding='utf-8') as file:
                             file.write(api_key)
                         top.destroy()
                         run_button()
@@ -184,12 +190,12 @@ class RunFrame(tk.Frame):
                 messagebox.showinfo("提示", "请选择api")
                 return
             if selected_mode.get() == 1:
-                order.extend(['--people', 'object/people.json'])
+                order.extend(['--people', os.path.join(BASE_DIR,'object/people.json')])
             else:
                 if selected_friend.get():
                     try:
                         index = friend_name.index(selected_friend.get())
-                        order.extend(['--person', friend_dir[index]])
+                        order.extend(['--person', os.path.join(BASE_DIR,friend_dir[index])])
                     except:
                         messagebox.showinfo("提示", "不存在该好友")
                         return
@@ -231,13 +237,13 @@ class ChangeFrame(tk.Frame):
         super().__init__(root)
         self.style = ttk.Style()
         self.style.configure('Change.TButton', font=('微软雅黑', 8))
-        if os.path.exists('temp/key.txt'):
-            with open('temp/key.txt', "r", encoding='utf-8') as file:
+        if os.path.exists(os.path.join(BASE_DIR,'temp/key.txt')):
+            with open(os.path.join(BASE_DIR,'temp/key.txt'), "r", encoding='utf-8') as file:
                 self.api_key = file.read()
         else:
             self.api_key = 'null'
 
-        self.sign_photo = tk.PhotoImage(file='assets/sign3.gif')
+        self.sign_photo = tk.PhotoImage(file=os.path.join(BASE_DIR,'assets/sign3.gif'))
         self.sign_label = tk.Label(self, image=self.sign_photo)
         self.sign_label.image = self.sign_photo  # 保持对图片的引用，防止被垃圾回收
         self.sign_label.pack()
@@ -289,7 +295,7 @@ class ChangeFrame(tk.Frame):
                 if show_key.cget("text") == '隐藏':
                     key.config(text=self.api_key, font=('微软雅黑', 10, 'bold'))
                 e.delete(0, 'end')
-                with open('temp/key.txt', "w", encoding='utf-8') as file:
+                with open(os.path.join(BASE_DIR,'temp/key.txt'), "w", encoding='utf-8') as file:
                     file.write(self.api_key)
                 messagebox.showinfo("提示", "修改成功！")
             else:
@@ -320,11 +326,11 @@ class FriendFrame(tk.Frame):
         self.file_path1 = None
         self.file_path2 = None
 
-        if not os.path.exists('object/people.json'):
+        if not os.path.exists(os.path.join(BASE_DIR,'object/people.json')):
             self.friend_dir = []
             self.friend_name = []
         else:
-            with open('object/people.json', 'r', encoding='utf-8') as file:
+            with open(os.path.join(BASE_DIR,'object/people.json'), 'r', encoding='utf-8') as file:
                 self.friend_dir = json.load(file)
                 self.friend_name = [friend['name'] for friend in self.friend_dir]
 
@@ -351,13 +357,13 @@ class FriendFrame(tk.Frame):
         frame2.pack()
         canvas1 = tk.Canvas(self, width=300, height=70)
         canvas1.pack()
-        sign_image = Image.open('assets/sign4.png')
+        sign_image = Image.open(os.path.join(BASE_DIR,'assets/sign4.png'))
         sign_photo = ImageTk.PhotoImage(sign_image)
         canvas1.create_image(150, 30, image=sign_photo, anchor='w')
         canvas1.image = sign_photo
 
         def load_large_avatar():
-            self.file_path1 = filedialog.askopenfilename(filetypes=[('Image files', '*.jpg;*.jpeg;*.png;*.gif')])
+            self.file_path1 = filedialog.askopenfilename(filetypes=[('Image files', '*.png')])
             if self.file_path1:
                 canvas1.delete("all")
                 image = Image.open(self.file_path1)
@@ -379,7 +385,7 @@ class FriendFrame(tk.Frame):
         canvas2.image = sign_photo
 
         def load_avatar():
-            self.file_path2 = filedialog.askopenfilename(filetypes=[('Image files', '*.jpg;*.jpeg;*.png;*.gif')])
+            self.file_path2 = filedialog.askopenfilename(filetypes=[('Image files', '*.png')])
             if self.file_path2:
                 canvas2.delete("all")
                 image = Image.open(self.file_path2)
@@ -427,7 +433,7 @@ class FriendFrame(tk.Frame):
                     messagebox.showinfo("提示", "好友名称已存在！")
                     return
                 folder = ''.join(lazy_pinyin(e.get()))
-                base_path = 'object'
+                base_path = os.path.join(BASE_DIR,'object')
                 folder_list = [f for f in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, f))]
                 add = 1
                 folder_re = folder
@@ -457,7 +463,7 @@ class FriendFrame(tk.Frame):
                     else '你现在正在网络上和你的朋友聊天。'
                 with open(os.path.join(folder_path, 'role.txt'), "w", encoding='utf-8') as file:
                     file.write(role)
-                with open('object/people.json', 'w', encoding='utf-8') as file:
+                with open(os.path.join(BASE_DIR,'object/people.json'), 'w', encoding='utf-8') as file:
                     json.dump(self.friend_dir, file)
                 messagebox.showinfo("提示", "新建成功！")
                 e.delete(0, 'end')
@@ -466,11 +472,11 @@ class FriendFrame(tk.Frame):
                 text.delete(1.0, tk.END)
                 button1.config(text='选择图片')
                 button2.config(text='选择图片')
-                if not os.path.exists('object/people.json'):
+                if not os.path.exists(os.path.join(BASE_DIR,'object/people.json')):
                     self.friend_dir = []
                     self.friend_name = []
                 else:
-                    with open('object/people.json', 'r', encoding='utf-8') as file:
+                    with open(os.path.join(BASE_DIR,'object/people.json'), 'r', encoding='utf-8') as file:
                         self.friend_dir = json.load(file)
                         self.friend_name = [friend['name'] for friend in self.friend_dir]
 
@@ -485,7 +491,7 @@ class FriendReviseFrame(tk.Frame):
         self.file_path2 = None
         self.path = None
         self.role = None
-        friend_path = 'object/people.json'
+        friend_path = os.path.join(BASE_DIR,'object/people.json')
         if os.path.exists(friend_path):
             with open(friend_path, 'r', encoding='utf-8') as f:
                 self.friends = json.load(f)
@@ -498,13 +504,13 @@ class FriendReviseFrame(tk.Frame):
 
         top_canvas = tk.Canvas(self, width=300, height=100)
         top_canvas.pack()
-        top_image1 = Image.open('assets/sign6/step1.png')
+        top_image1 = Image.open(os.path.join(BASE_DIR,'assets/sign6/step1.png'))
         top_photo1 = ImageTk.PhotoImage(top_image1)
-        top_image2 = Image.open('assets/sign6/step2.png')
+        top_image2 = Image.open(os.path.join(BASE_DIR,'assets/sign6/step2.png'))
         top_photo2 = ImageTk.PhotoImage(top_image2)
-        top_image3 = Image.open('assets/sign6/step3.png')
+        top_image3 = Image.open(os.path.join(BASE_DIR,'assets/sign6/step3.png'))
         top_photo3 = ImageTk.PhotoImage(top_image3)
-        top_image4 = Image.open('assets/sign6/step4.png')
+        top_image4 = Image.open(os.path.join(BASE_DIR,'assets/sign6/step4.png'))
         top_photo4 = ImageTk.PhotoImage(top_image4)
         top_canvas.create_image(150, 50, image=top_photo1)
         top_canvas.image = top_photo1
@@ -513,7 +519,7 @@ class FriendReviseFrame(tk.Frame):
         revise_frame.pack()
         sign_canvas = tk.Canvas(revise_frame, width=500, height=202)
         sign_canvas.pack()
-        sign_image = Image.open('assets/sign7.png')
+        sign_image = Image.open(os.path.join(BASE_DIR,'assets/sign7.png'))
         sign_photo = ImageTk.PhotoImage(sign_image)
         sign_canvas.create_image(250, 70, image=sign_photo)
         sign_canvas.image = sign_photo
@@ -544,7 +550,7 @@ class FriendReviseFrame(tk.Frame):
         revise_frame2 = tk.Frame(self)
         sign_canvas2 = tk.Canvas(revise_frame2, width=500, height=202)
         sign_canvas2.pack()
-        sign_image2 = Image.open('assets/sign8.png')
+        sign_image2 = Image.open(os.path.join(BASE_DIR,'assets/sign8.png'))
         sign_photo2 = ImageTk.PhotoImage(sign_image2)
         sign_canvas2.create_image(250, 70, image=sign_photo2)
         sign_canvas2.image = sign_photo2
@@ -579,7 +585,7 @@ class FriendReviseFrame(tk.Frame):
         canvas1 = tk.Canvas(revise_frame3, width=300, height=70)
 
         def load_large_avatar():
-            self.file_path1 = filedialog.askopenfilename(filetypes=[('Image files', '*.jpg;*.jpeg;*.png;*.gif')])
+            self.file_path1 = filedialog.askopenfilename(filetypes=[('Image files', '*.png')])
             if self.file_path1:
                 canvas1.delete("all")
                 image = Image.open(self.file_path1)
@@ -598,7 +604,7 @@ class FriendReviseFrame(tk.Frame):
         frame.pack()
 
         def load_avatar():
-            self.file_path2 = filedialog.askopenfilename(filetypes=[('Image files', '*.jpg;*.jpeg;*.png;*.gif')])
+            self.file_path2 = filedialog.askopenfilename(filetypes=[('Image files', '*.png')])
             if self.file_path2:
                 canvas2.delete("all")
                 image = Image.open(self.file_path2)

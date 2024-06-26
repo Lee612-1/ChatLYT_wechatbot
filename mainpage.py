@@ -1,3 +1,4 @@
+import sys
 import tkinter as tk
 from views import *
 from PIL import Image, ImageTk
@@ -14,12 +15,15 @@ class Mainpage:
         self.root.title('ChatLYT😅')
         self.root.geometry('600x800+1500+500')
         self.crate_page()
-        temp_folder = 'temp'
-        obj_folder = 'object'
+        temp_folder = os.path.join(BASE_DIR, 'temp')
+        obj_folder = os.path.join(BASE_DIR,'object')
+        history_folder = os.path.join(BASE_DIR,'history')
         if not os.path.exists(temp_folder):
             os.makedirs(temp_folder)
         if not os.path.exists(obj_folder):
             os.makedirs(obj_folder)
+        if not os.path.exists(history_folder):
+            os.makedirs(history_folder)
 
     def crate_page(self):
         self.top_frame = tk.Frame(self.root)
@@ -36,7 +40,7 @@ class Mainpage:
             self.init_frame.pack_forget()
             self.delete_frame.pack_forget()
             self.check_frame.pack_forget()
-        img = Image.open('assets/sign5.png')
+        img = Image.open(os.path.join(BASE_DIR,'assets/sign5.png'))
         imgTk = ImageTk.PhotoImage(img)
         return_label = tk.Label(self.top_frame, image=imgTk)
         return_label.image = imgTk
@@ -47,7 +51,7 @@ class Mainpage:
         self.title.pack(side=tk.RIGHT, pady=40)
 
         self.start_frame = tk.Frame(self.root)
-        self.sign_photo = tk.PhotoImage(file='assets/sign.gif')
+        self.sign_photo = tk.PhotoImage(file=os.path.join(BASE_DIR,'assets/sign.gif'))
         self.sign_label = tk.Label(self.start_frame, image=self.sign_photo)
         self.sign_label.image = self.sign_photo  # 保持对图片的引用，防止被垃圾回收
         self.sign_label.pack()
@@ -59,7 +63,7 @@ class Mainpage:
 
         self.check_frame = tk.Frame(self.root)
         tk.Label(self.check_frame, text='', height=3).pack()
-        friend_path = 'object/people.json'
+        friend_path = os.path.join(BASE_DIR,'object/people.json')
         self.friends = []
         if os.path.exists(friend_path):
             with open(friend_path, 'r', encoding='utf-8') as f:
@@ -88,7 +92,7 @@ class Mainpage:
         sub_check_frame2 = tk.Frame(canvas)
         canvas.create_window((0, 0), window=sub_check_frame2, anchor='nw')
         # 为列表中的每个name创建一个多选框
-        avatar_path = 'assets/sign4.png'
+        avatar_path = os.path.join(BASE_DIR,'assets/sign4.png')
         for i, name in enumerate(self.friend_name):
             for file in os.listdir(self.friend_dir[i]):
                 if file.startswith('large_avatar'):
@@ -131,7 +135,7 @@ class Mainpage:
         self.flst_revise_frame = FlstReviseFrame(self.root)
         self.delete_frame = DeleteFrame(self.root)
         self.init_frame = InitFrame(self.root)
-        if 'audio.png' not in os.listdir('object') or 'duplicate.png' not in os.listdir('object') or 'meme.png' not in os.listdir('object') or 'myavatar.png' not in os.listdir('object') or 'send.png' not in os.listdir('object'):
+        if 'audio.png' not in os.listdir(OBJECT_DIR) or 'duplicate.png' not in os.listdir(OBJECT_DIR) or 'meme.png' not in os.listdir(OBJECT_DIR) or 'myavatar.png' not in os.listdir(OBJECT_DIR) or 'send.png' not in os.listdir(OBJECT_DIR):
             self.top_frame.pack()
             self.title.config(text='初始化')
             self.init_frame.pack()
@@ -156,7 +160,7 @@ class Mainpage:
         revise_menu = tk.Menu(friend_menu, tearoff=0)
         revise_menu.add_command(label="好友资料", command=self.show_friend_revise)
         revise_menu.add_command(label="好友列表", command=self.show_flst_revise)
-        friend_menu.add_command(label='查看好友',command=self.show_check)
+        friend_menu.add_command(label='查看好友', command=self.show_check)
         friend_menu.add_separator()
         friend_menu.add_cascade(label='新建', menu=new_menu)
         friend_menu.add_cascade(label='修改', menu=revise_menu)
@@ -226,8 +230,9 @@ class Mainpage:
         self.run_frame = RunFrame(self.root)
         self.title.config(text='开始聊天')
         self.run_frame.pack()
-        if not os.path.exists('object/people.json'):
+        if not os.path.exists(os.path.join(OBJECT_DIR,'people.json')):
             messagebox.showinfo("提示", "暂无好友资料，请新建")
+            self.title.config(text='新建好友资料')
             self.run_frame.pack_forget()
             self.friend_frame.pack()
 
@@ -356,7 +361,7 @@ class Mainpage:
         webbrowser.open("https://github.com/Lee612-1/ChatLYT_wechatbot")
 
     def open_dir(self):
-        os.startfile('object')
+        os.startfile(OBJECT_DIR)
 
 
 if __name__ == '__main__':
